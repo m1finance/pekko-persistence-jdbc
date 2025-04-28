@@ -6,15 +6,19 @@ val ArtifactRepo = {
 }
 val SnapshotsRepo = {
   sys.env.get("ARTIFACTORY_SNAPSHOT_REPO") match {
-    case Some(sr) => "Artifactory-Snapshots".at(s"$sr;build.timestamp=${java.time.Instant.now().toEpochMilli}")
+    case Some(sr) => "Artifactory-Snapshots".at(sr)
     case _        => sys.error(s"Required snapshot repo location not found at ${sys.env.get("ARTIFACTORY_SNAPSHOT_REPO")}")
   }
 }
 
-(ThisBuild / publishTo) := Some(
-  // for full release use ArtifactRepo
-  // for snapshot release use SnapshotsRepo
-  SnapshotsRepo)
+val publishToEnv = sys.env.get("ARTIFACTORY_REPO_PUBLISH_TO")
+
+(ThisBuild / publishTo) := Some(publishToEnv.fold(SnapshotsRepo)(p =>
+  if (p == "SNAPSHOT") {
+    SnapshotsRepo
+  } else {
+    ArtifactRepo
+  }))
 
 // Sets credentials for Artifactory for all projects. Requires Env Vars or Credentials File
 (ThisBuild / credentials) += {
